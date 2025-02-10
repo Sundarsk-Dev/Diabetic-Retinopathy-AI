@@ -1,0 +1,12 @@
+flask
+flask-cors
+tensorflow
+numpy
+pillow
+opencv-python
+speechrecognition
+gtts
+transformers
+torch
+pydub
+scikit-learn
