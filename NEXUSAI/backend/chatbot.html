@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Health Companion</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: #f0f2f5;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background-color: #ffffff;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .header h1 {
+        color: #2c3e50;
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: #666;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        background-color: #4caf50;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .chat-container {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .message {
+        margin-bottom: 1rem;
+        max-width: 80%;
+        clear: both;
+      }
+
+      .user-message {
+        float: right;
+        background-color: #007bff;
+        color: white;
+        border-radius: 1rem 1rem 0 1rem;
+        padding: 0.8rem 1rem;
+      }
+
+      .bot-message {
+        float: left;
+        background-color: white;
+        color: #333;
+        border-radius: 1rem 1rem 1rem 0;
+        padding: 0.8rem 1rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      .input-container {
+        background-color: white;
+        padding: 1rem;
+        box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .voice-input-btn,
+      .volume-toggle {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s;
+      }
+
+      .voice-input-btn.recording {
+        background-color: #dc3545;
+      }
+      .volume-toggle.muted {
+        background-color: #dc3545;
+      }
+
+      .back-button {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        margin-top: 1rem;
+      }
+    </style>
+    <script>
+      let recognition, synthesis;
+      let isRecording = false;
+      let isMuted = false;
+
+      window.onload = function () {
+        if ("webkitSpeechRecognition" in window) {
+          recognition = new webkitSpeechRecognition();
+          recognition.lang = "en-US";
+          recognition.onresult = (event) => {
+            const text = event.results[0][0].transcript;
+            addMessage(text, "user-message");
+            sendToBot(text);
+          };
+        } else {
+          alert("Speech recognition not supported in this browser.");
+        }
+        synthesis = window.speechSynthesis;
+      };
+
+      function addMessage(text, className) {
+        const chatContainer = document.querySelector(".chat-container");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${className}`;
+        messageDiv.textContent = text;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function sendToBot(text) {
+        fetch("http://127.0.0.1:5000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            addMessage(data.response, "bot-message");
+            if (!isMuted) speak(data.response);
+          })
+          .catch(() => addMessage("Error processing request.", "bot-message"));
+      }
+
+      function speak(text) {
+        if (synthesis.speaking) synthesis.cancel();
+        synthesis.speak(new SpeechSynthesisUtterance(text));
+      }
+
+      function toggleVoiceInput(event) {
+        if (!isRecording) {
+          isRecording = true;
+          recognition.start();
+          event.target.classList.add("recording");
+        } else {
+          isRecording = false;
+          recognition.stop();
+          event.target.classList.remove("recording");
+        }
+      }
+
+      function toggleVolume() {
+        isMuted = !isMuted;
+        document.querySelector(".volume-toggle").classList.toggle("muted");
+        if (isMuted) synthesis.cancel();
+      }
+    </script>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Health Companion</h1>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>Online</span>
+      </div>
+    </div>
+    <div class="chat-container">
+      <div class="message bot-message">
+        Hello! I'm your health companion. How can I assist you today?
+      </div>
+    </div>
+    <div class="input-container">
+      <div class="controls">
+        <button class="voice-input-btn" onclick="toggleVoiceInput(event)">
+          🎤
+        </button>
+        <button class="volume-toggle" onclick="toggleVolume()">🔊</button>
+      </div>
+      <a href="index.html"
+        ><button class="back-button">Go Back to DR</button></a
+      >
+    </div>
+  </body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diabetic Retinopathy Detection</title>
+    <link rel="stylesheet" href="chatbot.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 20px;
+        background-color: #f8f9fa;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        width: 80%;
+        max-width: 800px;
+        margin: auto;
+      }
+      input,
+      button {
+        padding: 12px 20px;
+        margin: 10px;
+        font-size: 16px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+      }
+      #stopCamera {
+        background-color: #dc3545;
+      }
+      #stopCamera:hover {
+        background-color: #c82333;
+      }
+      #result {
+        font-size: 20px;
+        font-weight: bold;
+        color: #28a745;
+        margin: 20px 0;
+      }
+      #video-container {
+        margin-top: 20px;
+      }
+      .camera-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+      h2 {
+        color: #495057;
+        margin-top: 30px;
+      }
+    </style>
+    <script>
+      function uploadImage(event) {
+        event.preventDefault();
+
+        var fileInput = document.getElementById("file");
+        if (fileInput.files.length === 0) {
+          alert("Please select an image first.");
+          return;
+        }
+
+        var formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        fetch("http://127.0.0.1:5000/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Server error: " + response.statusText);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.result) {
+              document.getElementById("result").innerText =
+                "Prediction: " + data.result;
+            } else {
+              document.getElementById("result").innerText =
+                "Error: " + (data.error || "Unknown error occurred");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("result").innerText =
+              "Upload failed. Check console for details.";
+          });
+      }
+
+      function startCamera() {
+        document.getElementById("video-container").innerHTML =
+          '<img src="http://127.0.0.1:5000/video_feed" width="640" height="480">';
+        document.getElementById("stopCamera").style.display = "inline-block";
+        document.getElementById("startCamera").style.display = "none";
+      }
+
+      function stopCamera() {
+        document.getElementById("video-container").innerHTML = "";
+        document.getElementById("stopCamera").style.display = "none";
+        document.getElementById("startCamera").style.display = "inline-block";
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Diabetic Retinopathy Detection</h1>
+    <div class="container">
+      <!-- Image Upload -->
+      <h2>Upload Eye Scan</h2>
+      <form onsubmit="uploadImage(event)">
+        <input type="file" id="file" required />
+        <button type="submit">Upload & Predict</button>
+      </form>
+      <p id="result"></p>
+
+      <!-- Live Video Prediction -->
+      <h2>Live Detection</h2>
+      <div class="camera-controls">
+        <button id="startCamera" onclick="startCamera()">Start Camera</button>
+        <button id="stopCamera" onclick="stopCamera()" style="display: none">
+          Stop Camera
+        </button>
+      </div>
+      <div id="video-container"></div>
+      <a href="chatbot.html">
+        <button>Need assistance? Let`s talk!</button>
+      </a>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
